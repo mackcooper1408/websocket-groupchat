@@ -2,6 +2,7 @@
 
 // Room is an abstraction of a chat channel
 const Room = require("./Room");
+const axios = require("axios");
 
 /** ChatUser is a individual connection from client -> server to chat. */
 
@@ -60,6 +61,71 @@ class ChatUser {
     });
   }
 
+  /** Handle a joke: broadcast to room.
+   *
+   *
+   * */
+
+  async handleJoke() {
+    // grab random joke from icanhazdadjoke api
+    const response = await axios({
+      method: "GET",
+      url: "https://icanhazdadjoke.com/",
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    this.room.broadcast({
+      name: `${this.name} wants to tell a joke`,
+      type: "chat",
+      text: response.data.joke,
+    });
+  }
+
+  /** Handle a member list request: show to requester only. */
+
+  handleRoomMembers() {
+    // grab members and convert to an array
+    let memberArr = Array.from(this.room.members);
+
+    // iterate through array and grab chatUser name property
+    let members = memberArr.map(u => ` ${u.name}`);
+
+    this.send(JSON.stringify({
+      type: "note",
+      text: `Room members: ${members}`
+    }));
+  }
+
+  /** Handle a private message chat: 
+   *    broadcast to other user and yourself only.
+   *
+   * @param text {string} message to send
+   * 
+   */
+
+  handlePrivateMsg(text) {
+    let textArr = text.split(' ');
+    let otherUser = textArr[1];
+    let textToSend = textArr.slice(2).join(' ');
+
+    let memberArr = Array.from(this.room.members);
+    let member = memberArr.find(u => u.name === otherUser);
+    const members = [this, member];
+
+    const data = {
+      name: `${this.name} (private message)`,
+      type: "private",
+      text: textToSend
+    }
+
+    this.room.broadcastPrivate(data, members);
+
+  }
+
+
+
   /** Handle messages from client:
    *
    * @param jsonData {string} raw message data
@@ -75,6 +141,9 @@ class ChatUser {
 
     if (msg.type === "join") this.handleJoin(msg.name);
     else if (msg.type === "chat") this.handleChat(msg.text);
+    else if (msg.type === "private") this.handlePrivateMsg(msg.text);
+    else if (msg.type === "joke") this.handleJoke();
+    else if (msg.type === "members") this.handleRoomMembers();
     else throw new Error(`bad message: ${msg.type}`);
   }
 

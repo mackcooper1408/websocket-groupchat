@@ -65,6 +65,18 @@ class Room {
       member.send(JSON.stringify(data));
     }
   }
+
+  /** Send message to all members in a room.
+   *
+   * @param data {string} message to send
+   * @param members {array} members in private chat
+   * */
+
+  broadcastPrivate(data, members) {
+    for (let member of members) {
+      member.send(JSON.stringify(data));
+    }
+  }
 }
 
 module.exports = Room;

@@ -44,3 +44,7 @@ form button {
 #messages li:nth-child(odd) {
   background: #eee;
 }
+
+#private {
+  background: rgb(243, 151, 151) !important;
+}
